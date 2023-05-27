@@ -1,3 +1,4 @@
 (sym_lib_table
   (lib (name "ESP32_NODEMCU")(type "KiCad")(uri "${KIPRJMOD}/libs/ESP32_NODEMCU/ESP32_NODEMCU.kicad_sym")(options "")(descr ""))
+  (lib (name "ESP32-DEVKIT-V1")(type "KiCad")(uri "${KIPRJMOD}/libs/ESP32-DEVKIT-V1/ESP32-DEVKIT-V1.kicad_sym")(options "")(descr ""))
 )
