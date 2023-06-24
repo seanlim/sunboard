@@ -17,7 +17,7 @@ const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
 const NORDIC_UART_SERVICE_UUID = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
 const RX_CHAR_UUID = '6E400002-B5A3-F393-E0A9-E50E24DCCA9E';
-const SCAN_DURATION_SECONDS = 5;
+const SCAN_DURATION_SECONDS = 10;
 
 function App(): JSX.Element {
   const [peripherals, setPeripherals] = useState<Peripheral[]>([]);
@@ -49,7 +49,7 @@ function App(): JSX.Element {
 
   const renderDeviceItem = ({item}: ListRenderItemInfo<Peripheral>) => {
     return (
-      <View style={{height: 50}}>
+      <View style={{height: 50}} id={item.id}>
         <Text>
           {item.name}, {item.id}
         </Text>
@@ -71,8 +71,10 @@ function App(): JSX.Element {
         <Button
           title="Send"
           onPress={async () => {
+            console.info(`connecting to ${peripherals[0].id}...`)
             await BleManager.connect(peripherals[0].id);
-            BleManager.write(
+            const peripheralData = await BleManager.retrieveServices(peripherals[0].id);
+            await BleManager.write(
               peripherals[0].id,
               NORDIC_UART_SERVICE_UUID,
               RX_CHAR_UUID,
@@ -80,11 +82,12 @@ function App(): JSX.Element {
             );
           }}
         />
-        <FlatList
+        <Text>{JSON.stringify(peripherals)}</Text>
+        {/* <FlatList
           style={{height: '100%'}}
           data={peripherals}
           renderItem={renderDeviceItem}
-        />
+        /> */}
       </View>
     </SafeAreaView>
   );
