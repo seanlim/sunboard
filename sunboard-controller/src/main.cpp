@@ -1,6 +1,12 @@
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
+#ifdef DEBUG
+#define DEBUGF(...) Serial.printf(__VA_ARGS__)
+#else
+#define DEBUGF(...)
+#endif
+
 const int NUM_BUTT_INPUT_PINS = 4;
 const int ROWS_PINS[NUM_BUTT_INPUT_PINS] = {17, 16, 27, 13};
 const int COLS_PINS[NUM_BUTT_INPUT_PINS] = {22, 21, 26, 25};
@@ -52,102 +58,52 @@ void setup()
   Serial.println("Setup Done");
 }
 
+int state()
+{
+  delay(1);
+  return digitalRead(STATE_PIN);
+}
 // set the pins on the multiplexer for the given row. Since the PCB is connected from pin 2 to 15, this has to be added by 2.
 // so for example, if i want to activate the 0th row, i have to send "2" to the multiplexer.
 void setRow(uint8_t row)
 {
-  Serial.printf("setting row: %d: ", row);
-  row = row - 1;
+  DEBUGF("setting row: %d: ", row + 1);
   for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
   {
     int val = ((row + 2) & (1 << pin)) >> pin;
-    Serial.printf("%d ", val);
+    DEBUGF("%d ", val);
     digitalWrite(ROWS_PINS[pin], val);
   }
-  Serial.printf("\n");
+  DEBUGF("\n");
 }
 
-void setColumn(uint8_t col)
+int setColumn(uint8_t col)
 {
-  Serial.printf("setting col: %d: ", col);
-  col = col - 1;
+  DEBUGF("setting col: %d: ", col + 1);
   for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
   {
     int val = (col & (1 << pin)) >> pin;
-    Serial.printf("%d ", val);
+    DEBUGF("%d ", val);
     digitalWrite(COLS_PINS[pin], val);
   }
-  Serial.printf("\n");
+  DEBUGF("\n");
+  return state();
 }
 
 void loop()
 {
-  setRow(1);
-  delay(5000);
-  setRow(2);
-  delay(5000);
-  setRow(3);
-  delay(5000);
-  setRow(4);
-  delay(5000);
-  setRow(5);
-  delay(5000);
-  setRow(6);
-  delay(5000);
-  setRow(7);
-  delay(5000);
-  setRow(8);
-  delay(5000);
-  setRow(9);
-  delay(5000);
-  setRow(10);
-  delay(5000);
-  setRow(11);
-  delay(5000);
-  setRow(12);
-  delay(5000);
-  setRow(13);
-  delay(5000);
-  setRow(14);
-  delay(5000);
-
-  // go through the number of rows
-  // iterate through each row
-  // for (uint8_t row = 0; row < NUM_ROWS; row++)
-  // {
-  //   // set row pins
-  //   for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
-  //   {
-  //     digitalWrite(ROWS_PINS[pin], ((row + 2) & 1 << pin) >> pin);
-  //   }
-  //   // iterate through each column
-  //   for (uint8_t col = 0; col < NUM_COLS; col++)
-  //   {
-  //     // set col pins
-  //     for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
-  //     {
-  //       digitalWrite(COLS_PINS[pin], (col & 1 << pin) >> pin);
-  //     }
-  //     // read state
-  //     int button_pressed = digitalRead(STATE_PIN);
-  //     if (PREV_STATE[row * NUM_COLS + col] != button_pressed)
-  //     {
-  //       // Serial.printf("[%d][%d] = %d\n", row, col, button_pressed);
-  //       PREV_STATE[row * NUM_COLS + col] = button_pressed;
-  //     }
-  //     for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
-  //     {
-  //       digitalWrite(COLS_PINS[pin], 0);
-  //     }
-  //     Serial.printf("%d ", button_pressed);
-  //   }
-  //   Serial.printf("\n");
-  //   for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
-  //   {
-  //     digitalWrite(ROWS_PINS[pin], 0);
-  //   }
-  // }
-  // Serial.printf("\n");
+  for (uint8_t row = 0; row < NUM_ROWS; row++)
+  {
+    setRow(row);
+    for (uint8_t col = 0; col < NUM_COLS; col++)
+    {
+      int result = setColumn(col);
+      if (result)
+      {
+        Serial.printf("%d %d pressed\n", row + 1, col + 1);
+      }
+    }
+  }
 
   // for (int i = 0; i < NUM_ROWS * NUM_COLS; i++)
   // {
