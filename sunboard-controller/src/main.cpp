@@ -1,6 +1,14 @@
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 
+#ifdef TRACE
+#define TRACEF(...) Serial.printf(__VA_ARGS__)
+#else
+#define TRACEF(...)
+#endif
+
+#define DEBUG 1
+
 #ifdef DEBUG
 #define DEBUGF(...) Serial.printf(__VA_ARGS__)
 #else
@@ -67,26 +75,26 @@ int state()
 // so for example, if i want to activate the 0th row, i have to send "2" to the multiplexer.
 void setRow(uint8_t row)
 {
-  DEBUGF("setting row: %d: ", row + 1);
+  TRACEF("setting row: %d: ", row + 1);
   for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
   {
     int val = ((row + 2) & (1 << pin)) >> pin;
-    DEBUGF("%d ", val);
+    TRACEF("%d ", val);
     digitalWrite(ROWS_PINS[pin], val);
   }
-  DEBUGF("\n");
+  TRACEF("\n");
 }
 
 int setColumn(uint8_t col)
 {
-  DEBUGF("setting col: %d: ", col + 1);
+  TRACEF("setting col: %d: ", col + 1);
   for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
   {
     int val = (col & (1 << pin)) >> pin;
-    DEBUGF("%d ", val);
+    TRACEF("%d ", val);
     digitalWrite(COLS_PINS[pin], val);
   }
-  DEBUGF("\n");
+  TRACEF("\n");
   return state();
 }
 
@@ -100,7 +108,7 @@ void loop()
       int result = setColumn(col);
       if (result)
       {
-        Serial.printf("%d %d pressed\n", row + 1, col + 1);
+        DEBUGF("%d %d pressed\n", row + 1, col + 1);
       }
     }
   }
