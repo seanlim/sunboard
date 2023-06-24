@@ -37,12 +37,6 @@ RgbColor blue(0, 0, colorSaturation);
 RgbColor white(colorSaturation);
 RgbColor black(0);
 
-HslColor hslRed(red);
-HslColor hslGreen(green);
-HslColor hslBlue(blue);
-HslColor hslWhite(white);
-HslColor hslBlack(black);
-
 void setup()
 {
   Serial.begin(115200);
@@ -50,8 +44,8 @@ void setup()
     ;
 
   // initialize LEDs
-  // strip.Begin();
-  // strip.Show();
+  strip.Begin();
+  strip.Show();
   Serial.println("LEDs Initialized");
 
   // initialize rows;
@@ -98,6 +92,13 @@ int setColumn(uint8_t col)
   return state();
 }
 
+void setPixel(uint8_t row, uint8_t col, RgbColor color)
+{
+  int index = (13 - row) * 11 + col;
+  DEBUGF("Lighting up %d\n", index);
+  strip.SetPixelColor(index, color);
+}
+
 void loop()
 {
   for (uint8_t row = 0; row < NUM_ROWS; row++)
@@ -108,14 +109,11 @@ void loop()
       int result = setColumn(col);
       if (result)
       {
+        setPixel(row, col, red);
         DEBUGF("%d %d pressed\n", row + 1, col + 1);
       }
     }
   }
 
-  // for (int i = 0; i < NUM_ROWS * NUM_COLS; i++)
-  // {
-  //   strip.SetPixelColor(i, PREV_STATE[i] == 1 ? red : black);
-  // }
-  // strip.Show();
+  strip.Show();
 }
