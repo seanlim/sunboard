@@ -36,8 +36,8 @@ void setup()
     ;
 
   // initialize LEDs
-  strip.Begin();
-  strip.Show();
+  // strip.Begin();
+  // strip.Show();
   Serial.println("LEDs Initialized");
 
   // initialize rows;
@@ -52,32 +52,66 @@ void setup()
   Serial.println("Setup Done");
 }
 
-int prev = 99;
+// set the pins on the multiplexer for the given row. Since the PCB is connected from pin 2 to 15, this has to be added by 2.
+// so for example, if i want to activate the 0th row, i have to send "2" to the multiplexer.
+void setRow(uint8_t row)
+{
+  Serial.printf("setting row: %d: ", row);
+  row = row - 1;
+  for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
+  {
+    int val = ((row + 2) & (1 << pin)) >> pin;
+    Serial.printf("%d ", val);
+    digitalWrite(ROWS_PINS[pin], val);
+  }
+  Serial.printf("\n");
+}
+
+void setColumn(uint8_t col)
+{
+  Serial.printf("setting col: %d: ", col);
+  col = col - 1;
+  for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
+  {
+    int val = (col & (1 << pin)) >> pin;
+    Serial.printf("%d ", val);
+    digitalWrite(COLS_PINS[pin], val);
+  }
+  Serial.printf("\n");
+}
 
 void loop()
 {
-  digitalWrite(ROWS_PINS[0], 0);
-  digitalWrite(ROWS_PINS[1], 1);
-  digitalWrite(ROWS_PINS[2], 0);
-  digitalWrite(ROWS_PINS[3], 0);
+  setRow(1);
+  delay(5000);
+  setRow(2);
+  delay(5000);
+  setRow(3);
+  delay(5000);
+  setRow(4);
+  delay(5000);
+  setRow(5);
+  delay(5000);
+  setRow(6);
+  delay(5000);
+  setRow(7);
+  delay(5000);
+  setRow(8);
+  delay(5000);
+  setRow(9);
+  delay(5000);
+  setRow(10);
+  delay(5000);
+  setRow(11);
+  delay(5000);
+  setRow(12);
+  delay(5000);
+  setRow(13);
+  delay(5000);
+  setRow(14);
+  delay(5000);
 
-  digitalWrite(COLS_PINS[0], 0);
-  digitalWrite(COLS_PINS[1], 0);
-  digitalWrite(COLS_PINS[2], 0);
-  digitalWrite(COLS_PINS[3], 0);
-
-  for (int i = 0; i < NUM_COLS; i++)
-  {
-    for (int pin = 0; pin < NUM_BUTT_INPUT_PINS; pin++)
-    {
-      digitalWrite(COLS_PINS[pin], (i & 1 << pin) >> pin);
-    }
-    int state = digitalRead(STATE_PIN);
-    Serial.printf("%d ", state);
-    delay(50);
-  }
-  Serial.printf("\n\n");
-
+  // go through the number of rows
   // iterate through each row
   // for (uint8_t row = 0; row < NUM_ROWS; row++)
   // {
@@ -115,11 +149,9 @@ void loop()
   // }
   // Serial.printf("\n");
 
-  for (int i = 0; i < NUM_ROWS * NUM_COLS; i++)
-  {
-    strip.SetPixelColor(i, PREV_STATE[i] == 1 ? red : black);
-  }
-  strip.Show();
-
-  delay(100);
+  // for (int i = 0; i < NUM_ROWS * NUM_COLS; i++)
+  // {
+  //   strip.SetPixelColor(i, PREV_STATE[i] == 1 ? red : black);
+  // }
+  // strip.Show();
 }
