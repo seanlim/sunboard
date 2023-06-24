@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "main.hpp"
 #include <NeoPixelBus.h>
 
 #ifdef TRACE
@@ -27,7 +28,7 @@ const int PIXEL_COUNT = 154;
 
 #define colorSaturation 128
 
-int PREV_STATE[NUM_ROWS * NUM_COLS] = {};
+int PREV_STATE[NUM_ROWS][NUM_COLS] = {};
 
 NeoPixelBus<NeoGrbFeature, NeoWs2812xMethod> strip(PIXEL_COUNT, PIXEL_PIN);
 
@@ -36,6 +37,8 @@ RgbColor green(0, colorSaturation, 0);
 RgbColor blue(0, 0, colorSaturation);
 RgbColor white(colorSaturation);
 RgbColor black(0);
+
+TaskHandle_t ButtonTask;
 
 void setup()
 {
@@ -58,6 +61,31 @@ void setup()
   pinMode(STATE_PIN, INPUT_PULLDOWN);
 
   Serial.println("Setup Done");
+
+  xTaskCreate(ButtonTaskCode, "ButtonTask", 10000, NULL, 1, &ButtonTask);
+}
+
+void ButtonTaskCode(void *pvParams)
+{
+  while (true)
+  {
+    for (uint8_t row = 0; row < NUM_ROWS; row++)
+    {
+      setRow(row);
+      for (uint8_t col = 0; col < NUM_COLS; col++)
+      {
+        int result = setColumn(col);
+        if (result)
+        {
+          DEBUGF("%d %d pressed\n", row + 1, col + 1);
+        }
+        if (result != PREV_STATE[row][col])
+        {
+          PREV_STATE[row][col] = result;
+        }
+      }
+    }
+  }
 }
 
 int state()
@@ -95,7 +123,7 @@ int setColumn(uint8_t col)
 void setPixel(uint8_t row, uint8_t col, RgbColor color)
 {
   int index = (13 - row) * 11 + col;
-  DEBUGF("Lighting up %d\n", index);
+  TRACEF("Lighting up %d\n", index);
   strip.SetPixelColor(index, color);
 }
 
@@ -103,17 +131,13 @@ void loop()
 {
   for (uint8_t row = 0; row < NUM_ROWS; row++)
   {
-    setRow(row);
     for (uint8_t col = 0; col < NUM_COLS; col++)
     {
-      int result = setColumn(col);
-      if (result)
+      if (PREV_STATE[row][col])
       {
         setPixel(row, col, red);
-        DEBUGF("%d %d pressed\n", row + 1, col + 1);
       }
     }
   }
-
   strip.Show();
 }
