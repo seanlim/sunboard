@@ -1,5 +1,14 @@
-#include <Arduino.h>
 #include "main.hpp"
+
+#include <Arduino.h>
+
+#include <vector>
+
+#include "BLESerial.h"
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+
 #include <NeoPixelBus.h>
 
 #ifdef TRACE
@@ -7,8 +16,6 @@
 #else
 #define TRACEF(...)
 #endif
-
-#define DEBUG 1
 
 #ifdef DEBUG
 #define DEBUGF(...) Serial.printf(__VA_ARGS__)
@@ -28,6 +35,7 @@ const int PIXEL_COUNT = 154;
 
 #define colorSaturation 128
 
+// a mutex would be better for this but eh
 int PREV_STATE[NUM_ROWS][NUM_COLS] = {};
 
 NeoPixelBus<NeoGrbFeature, NeoWs2812xMethod> strip(PIXEL_COUNT, PIXEL_PIN);
@@ -39,6 +47,8 @@ RgbColor white(colorSaturation);
 RgbColor black(0);
 
 TaskHandle_t ButtonTask;
+
+BLESerial bleSerial;
 
 void setup()
 {
@@ -58,11 +68,14 @@ void setup()
     pinMode(COLS_PINS[i], OUTPUT);
   }
 
+  char bleName[] = "Sunboard";
+  bleSerial.begin(bleName);
+
   pinMode(STATE_PIN, INPUT_PULLDOWN);
 
   Serial.println("Setup Done");
 
-  xTaskCreate(ButtonTaskCode, "ButtonTask", 10000, NULL, 1, &ButtonTask);
+  // xTaskCreate(ButtonTaskCode, "ButtonTask", 10000, NULL, 1, &ButtonTask);
 }
 
 void ButtonTaskCode(void *pvParams)
@@ -77,7 +90,7 @@ void ButtonTaskCode(void *pvParams)
         int result = setColumn(col);
         if (result)
         {
-          DEBUGF("%d %d pressed\n", row + 1, col + 1);
+          TRACEF("%d %d pressed\n", row + 1, col + 1);
         }
         if (result != PREV_STATE[row][col])
         {
@@ -122,6 +135,8 @@ int setColumn(uint8_t col)
 
 void setPixel(uint8_t row, uint8_t col, RgbColor color)
 {
+  if (row < 0 || col < 0)
+    return;
   int index = (13 - row) * 11 + col;
   TRACEF("Lighting up %d\n", index);
   strip.SetPixelColor(index, color);
@@ -129,15 +144,79 @@ void setPixel(uint8_t row, uint8_t col, RgbColor color)
 
 void loop()
 {
-  for (uint8_t row = 0; row < NUM_ROWS; row++)
+
+  if (bleSerial.connected())
   {
-    for (uint8_t col = 0; col < NUM_COLS; col++)
+    if (bleSerial.available())
     {
-      if (PREV_STATE[row][col])
+      String result;
+      char data;
+      while (bleSerial.available())
       {
-        setPixel(row, col, red);
+        eraseBoard();
+        data = bleSerial.read();
+        result.concat(data);
       }
+      parseData(result);
     }
   }
   strip.Show();
+  delay(1000);
+}
+
+// String asdf = "l#S175,P85,P152,E126#";
+
+void parseData(String data)
+{
+  Serial.printf("data: %s\n", data);
+  // remove starting and ending characters
+  data = data.substring(2);
+  data.remove(data.length() - 1);
+  String subStr;
+  for (int i = 0; i < data.length(); i++)
+  {
+    if (data[i] == ',')
+    {
+      // process substring
+      processSubStr(subStr);
+      subStr = "";
+      continue;
+    }
+    // build string until comma
+    subStr.concat(data[i]);
+  }
+  processSubStr(subStr);
+}
+
+void eraseBoard()
+{
+  for (int row = 0; row < NUM_ROWS; row++)
+  {
+    for (int col = 0; col < NUM_COLS; col++)
+    {
+      setPixel(row, col, black);
+    }
+  }
+}
+
+void processSubStr(String subStr)
+{
+  RgbColor color;
+  if (subStr[0] == 'S')
+    color = green;
+  if (subStr[0] == 'P')
+    color = blue;
+  if (subStr[0] == 'E')
+    color = red;
+
+  int pos = subStr.substring(1).toInt();
+  int column = pos / 18;
+  int row = (pos % 18);
+  if (column % 2 == 1)
+  {
+    row = 17 - row;
+  }
+  row = row - 4;
+  Serial.printf("%s: %d %d %d\n", subStr, pos, row, column);
+  setPixel(row, column, color);
 }

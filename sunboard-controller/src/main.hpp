@@ -7,3 +7,6 @@ int state();
 void setRow(uint8_t row);
 int setColumn(uint8_t col);
 void setPixel(uint8_t row, uint8_t col, RgbColor color);
+void parseData(String data);
+void eraseBoard();
+void processSubStr(String subStr);
