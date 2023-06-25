@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { NativeEventEmitter, NativeModules, Text, View } from "react-native";
+import {
+  Button,
+  FlatList,
+  ListRenderItemInfo,
+  NativeEventEmitter,
+  NativeModules,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import {
   NORDIC_UART_SERVICE_UUID,
   RX_CHAR_UUID,
   SCAN_DURATION_SECONDS,
-} from "../constants";
+} from "./constants";
 import BleManager, {
   BleDisconnectPeripheralEvent,
   BleManagerDidUpdateValueForCharacteristicEvent,
@@ -125,30 +134,67 @@ export default function MainScreen(): JSX.Element {
     });
   }
 
-  // function stringToByteArray(str: string): number[] {
-  //   let byteArray = new Uint8Array(str.length);
-  //   for (let i = 0; i < str.length; i++) {
-  //     byteArray[i] = str.charCodeAt(i) & 0xff;
-  //   }
-  //   return Array.from(byteArray);
-  // }
+  function stringToByteArray(str: string): number[] {
+    let byteArray = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+      byteArray[i] = str.charCodeAt(i) & 0xff;
+    }
+    return Array.from(byteArray);
+  }
 
-  // async function connectAndTransmit() {
-  //   console.info(`connecting to ${peripherals[0].id}...`);
-  //   await BleManager.connect(peripherals[0].id);
-  //   const peripheralData = await BleManager.retrieveServices(peripherals[0].id);
-  //   await BleManager.write(
-  //     peripherals[0].id,
-  //     NORDIC_UART_SERVICE_UUID,
-  //     RX_CHAR_UUID,
-  //     // Transmit value for "Black Beauty 8B"
-  //     stringToByteArray("l#S175,P85,P152,E126#")
-  //   );
-  // }
+  async function connectAndTransmit(id: string) {
+    console.info(`connecting to ${id}...`);
+    await BleManager.connect(id);
+    const peripheralData = await BleManager.retrieveServices(id);
+    await BleManager.write(
+      id,
+      NORDIC_UART_SERVICE_UUID,
+      RX_CHAR_UUID,
+      // Transmit value for "Black Beauty 8B"
+      stringToByteArray("l#S175,P85,P152,E126#")
+    );
+  }
+
+  if (isScanning) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <Text>Scanning...</Text>
+      </View>
+    );
+  }
+
+  const renderDeviceItem = ({ item }: ListRenderItemInfo<Peripheral>) => {
+    return (
+      <TouchableOpacity onPress={() => connectAndTransmit(item.id)}>
+        <View
+          style={{
+            height: 50,
+            backgroundColor: "white",
+            flex: 1,
+            justifyContent: "center",
+            padding: 15,
+          }}
+          id={item.id}
+        >
+          <Text>{item.name}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>Main</Text>
+    <View style={{ flex: 1 }}>
+      <FlatList
+        style={{ height: "100%", flex: 1 }}
+        data={Array.from(peripherals.values())}
+        renderItem={renderDeviceItem}
+        ListEmptyComponent={() => (
+          <>
+            <Text>No devices Found</Text>
+            <Button title="Scan" onPress={scan} />
+          </>
+        )}
+      />
     </View>
   );
 }
