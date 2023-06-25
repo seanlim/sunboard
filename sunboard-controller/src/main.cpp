@@ -2,12 +2,7 @@
 
 #include <Arduino.h>
 
-#include <vector>
-
 #include "BLESerial.h"
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
 
 #include <NeoPixelBus.h>
 
