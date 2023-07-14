@@ -10,9 +10,11 @@
 
 #include "buttonGrid.h"
 #include "logging.h"
+#include "Screen.h"
 
 ButtonGrid buttons;
 LedGrid leds;
+Screen screen;
 
 TaskHandle_t ButtonTask;
 
@@ -27,6 +29,7 @@ void setup()
   // initialize LEDs
   leds.setup();
   buttons.setup();
+  screen.setup();
 
   char bleName[] = "Sunboard";
   bleSerial.begin(bleName);

@@ -2,7 +2,6 @@
 #define LedGrid_h
 
 #include <NeoPixelBus.h>
-#include <NeoPixelBus.h>
 
 #include "logging.h"
 
