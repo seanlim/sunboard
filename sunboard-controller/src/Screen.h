@@ -15,7 +15,7 @@ class Screen
 {
 private:
     Adafruit_SSD1306 display;
-    TwoWire wire;
+    TwoWire wire = TwoWire(0);
 
 public:
     void setup();

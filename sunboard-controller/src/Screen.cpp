@@ -21,6 +21,7 @@ void Screen::setup()
 void Screen::setText(const char *fmt...)
 {
     display.printf(fmt);
+    Serial.println("Set");
 }
 
 void Screen::render()

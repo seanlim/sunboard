@@ -33,6 +33,7 @@ void setup()
 
   char bleName[] = "Sunboard";
   bleSerial.begin(bleName);
+  screen.setText("test");
 
   Serial.println("Setup Done");
 
@@ -68,6 +69,7 @@ void loop()
       parseData(result);
     }
   }
+  screen.render();
   leds.render();
   delay(1000);
 }
