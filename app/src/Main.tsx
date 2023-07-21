@@ -16,6 +16,7 @@ import {
   SCAN_DURATION_SECONDS,
 } from "./constants";
 import BleManager, {
+  BleConnectPeripheralEvent,
   BleDisconnectPeripheralEvent,
   BleManagerDidUpdateValueForCharacteristicEvent,
   BleScanCallbackType,
@@ -23,15 +24,21 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
+import { MBRoute, get2016Routes } from "./routes";
 
+// TODO: Needs to go into its own context
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
 export default function MainScreen(): JSX.Element {
   const [isScanning, setIsScanning] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectedID, setConnectedID] = useState<string>("");
   const [peripherals, setPeripherals] = useState(
     new Map<Peripheral["id"], Peripheral>()
   );
+
+  const routes = get2016Routes();
 
   console.debug("peripherals map updated", [...peripherals.entries()]);
 
@@ -102,6 +109,22 @@ export default function MainScreen(): JSX.Element {
     console.debug(
       `[handleDisconnectedPeripheral][${event.peripheral}] disconnected.`
     );
+    setIsConnected(false);
+    setConnectedID("");
+  };
+
+  const handleConnectPeripheral = (event: BleConnectPeripheralEvent) => {
+    let peripheral = peripherals.get(event.peripheral);
+    if (peripheral) {
+      console.debug(
+        `[handleConnectPeripheral][${peripheral.id}] is connected.`,
+        event.peripheral
+      );
+      addOrUpdatePeripheral(peripheral.id, { ...peripheral });
+      setConnectedID(peripheral.id);
+    }
+    console.debug(`[handleConnectPeripheral][${event.peripheral}] connected.`);
+    setIsConnected(true);
   };
 
   const handleUpdateValueForCharacteristic = (
@@ -123,6 +146,11 @@ export default function MainScreen(): JSX.Element {
       handleDisconnectedPeripheral
     ),
     bleManagerEmitter.addListener(
+      // TODO: check constant below
+      "BleManagerConnectPeripheral",
+      handleConnectPeripheral
+    ),
+    bleManagerEmitter.addListener(
       "BleManagerDidUpdateValueForCharacteristic",
       handleUpdateValueForCharacteristic
     ),
@@ -142,16 +170,18 @@ export default function MainScreen(): JSX.Element {
     return Array.from(byteArray);
   }
 
-  async function connectAndTransmit(id: string) {
+  async function connect(id: string) {
     console.info(`connecting to ${id}...`);
     await BleManager.connect(id);
     const peripheralData = await BleManager.retrieveServices(id);
+  }
+
+  async function send(data: string) {
     await BleManager.write(
-      id,
+      connectedID,
       NORDIC_UART_SERVICE_UUID,
       RX_CHAR_UUID,
-      // Transmit value for "Black Beauty 8B"
-      stringToByteArray("l#S175,P85,P152,E126#")
+      stringToByteArray(data)
     );
   }
 
@@ -163,9 +193,51 @@ export default function MainScreen(): JSX.Element {
     );
   }
 
-  const renderDeviceItem = ({ item }: ListRenderItemInfo<Peripheral>) => {
+  if (!isConnected) {
+    const renderDeviceItem = ({ item }: ListRenderItemInfo<Peripheral>) => {
+      return (
+        <TouchableOpacity onPress={() => connect(item.id)}>
+          <View
+            style={{
+              height: 50,
+              backgroundColor: "white",
+              flex: 1,
+              justifyContent: "center",
+              padding: 15,
+            }}
+            id={item.id}
+          >
+            <Text>{item.name}</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    };
     return (
-      <TouchableOpacity onPress={() => connectAndTransmit(item.id)}>
+      <View style={{ flex: 1 }}>
+        <FlatList
+          style={{ height: "100%", flex: 1 }}
+          data={Array.from(peripherals.values())}
+          renderItem={renderDeviceItem}
+          ListEmptyComponent={() => (
+            <>
+              <Text>No devices Found</Text>
+              <Button title="Scan" onPress={scan} />
+            </>
+          )}
+        />
+      </View>
+    );
+  }
+
+  const handleRoutePress = (route: MBRoute) => async () => {
+    console.info(route)
+    await send("l#S1,P2,P3,P4,P5,P6,P7,P8,E9#");
+  }
+
+
+  const renderRouteItem = ({ item }: ListRenderItemInfo<MBRoute>) => {
+    return (
+      <TouchableOpacity onPress={handleRoutePress(item)}>
         <View
           style={{
             height: 50,
@@ -174,26 +246,21 @@ export default function MainScreen(): JSX.Element {
             justifyContent: "center",
             padding: 15,
           }}
-          id={item.id}
+          id={item.name}
         >
-          <Text>{item.name}</Text>
+          <Text>
+            {item.name}, {item.grade}
+          </Text>
         </View>
       </TouchableOpacity>
     );
   };
-
   return (
     <View style={{ flex: 1 }}>
       <FlatList
         style={{ height: "100%", flex: 1 }}
-        data={Array.from(peripherals.values())}
-        renderItem={renderDeviceItem}
-        ListEmptyComponent={() => (
-          <>
-            <Text>No devices Found</Text>
-            <Button title="Scan" onPress={scan} />
-          </>
-        )}
+        data={routes}
+        renderItem={renderRouteItem}
       />
     </View>
   );
