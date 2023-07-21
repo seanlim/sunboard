@@ -1,24 +1,25 @@
 #include "main.h"
 
 #include <Arduino.h>
-
-#include "BLESerial.h"
-
 #include <NeoPixelBus.h>
+#include <BLESerial.h>
 
 #include "LedGrid.h"
-
 #include "buttonGrid.h"
 #include "logging.h"
 #include "Screen.h"
+#include "Encoder.h"
 
 ButtonGrid buttons;
 LedGrid leds;
 Screen screen;
 
-TaskHandle_t ButtonTask;
+Encoder encoder;
 
-BLESerial bleSerial;
+// TaskHandle_t ButtonTask;
+
+BLESerial bleReceive;
+BLESerial bleSend;
 
 void setup()
 {
@@ -30,9 +31,12 @@ void setup()
   leds.setup();
   buttons.setup();
   screen.setup();
+  encoder.setup();
 
-  char bleName[] = "Sunboard";
-  bleSerial.begin(bleName);
+  char bleReceiveName[] = "Sunboard Receiver";
+  char bleSendName[] = "Sunboard Sender";
+  bleReceive.begin(bleReceiveName);
+  bleSend.begin(bleSendName);
 
   Serial.println("Setup Done");
 
@@ -50,22 +54,29 @@ void ButtonTaskCode(void *pvParams)
 // set the pins on the multiplexer for the given row. Since the PCB is connected from pin 2 to 15, this has to be added by 2.
 // so for example, if i want to activate the 0th row, i have to send "2" to the multiplexer.
 
+void handleEncoderRotate(long val)
+{
+  Serial.print("Encoder: ");
+  Serial.print(val);
+  Serial.println();
+}
+
 void loop()
 {
-
-  if (bleSerial.connected())
+  encoder.onChange(&handleEncoderRotate);
+  if (bleReceive.connected())
   {
-    if (bleSerial.available())
+    if (bleReceive.available())
     {
       String result;
       char data;
-      while (bleSerial.available())
+      while (bleReceive.available())
       {
         leds.clear();
-        data = bleSerial.read();
+        data = bleReceive.read();
         result.concat(data);
       }
-      parseData(result);
+      parseRoute(result);
     }
   }
   leds.render();
@@ -74,7 +85,7 @@ void loop()
 
 // String asdf = "l#S175,P85,P152,E126#";
 
-void parseData(String data)
+void parseRoute(String data)
 {
   Serial.printf("data: %s\n", data);
   // remove starting and ending characters

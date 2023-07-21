@@ -5,7 +5,7 @@
 #include <NeoPixelBus.h>
 void ButtonTaskCode(void *pvParams);
 
-void parseData(String data);
+void parseRoute(String data);
 void processSubStr(String subStr);
 
 #endif

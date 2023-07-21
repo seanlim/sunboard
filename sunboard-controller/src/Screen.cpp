@@ -4,9 +4,7 @@
 
 void Screen::setup()
 {
-    wire = TwoWire(0);
     wire.begin(SDA_PIN, SCL_PIN);
-    display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &wire, OLED_RESET);
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
     {
         Serial.println(F("DISPLAY Allocation Failed"));

@@ -14,8 +14,8 @@ const int SCREEN_ADDRESS = 0x3C;
 class Screen
 {
 private:
-    Adafruit_SSD1306 display;
-    TwoWire wire;
+    TwoWire wire = TwoWire(0);
+    Adafruit_SSD1306 display = Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &wire, OLED_RESET);
 
 public:
     void setup();
