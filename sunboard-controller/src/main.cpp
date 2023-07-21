@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <NeoPixelBus.h>
 #include <BLESerial.h>
+#include <Adafruit_SSD1306.h>
 
 #include "LedGrid.h"
 #include "buttonGrid.h"
@@ -30,8 +31,8 @@ void setup()
   // initialize LEDs
   leds.setup();
   buttons.setup();
-  screen.setup();
   encoder.setup();
+  screen.setup();
 
   char bleReceiveName[] = "Sunboard Receiver";
   char bleSendName[] = "Sunboard Sender";
@@ -56,13 +57,15 @@ void ButtonTaskCode(void *pvParams)
 
 void handleEncoderRotate(long val)
 {
-  Serial.print("Encoder: ");
-  Serial.print(val);
-  Serial.println();
+  char buffer[40];
+  Serial.printf("Encoder: %d\n", val);
+  sprintf(buffer, "Encoder: %d", val);
+  screen.setText(buffer);
 }
 
 void loop()
 {
+
   encoder.onChange(&handleEncoderRotate);
   if (bleReceive.connected())
   {
@@ -80,7 +83,6 @@ void loop()
     }
   }
   leds.render();
-  delay(1000);
 }
 
 // String asdf = "l#S175,P85,P152,E126#";

@@ -19,8 +19,7 @@ private:
 
 public:
     void setup();
-    void setText(const char *fmt...);
-    void render();
+    void setText(const char *fmt);
 };
 
 #endif
