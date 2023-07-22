@@ -229,11 +229,29 @@ export default function MainScreen(): JSX.Element {
     );
   }
 
-  const handleRoutePress = (route: MBRoute) => async () => {
-    console.info(route)
-    await send("l#S1,P2,P3,P4,P5,P6,P7,P8,E9#");
+  function isEven(n: number) {
+    return n % 2 == 0;
   }
 
+  const handleRoutePress = (route: MBRoute) => async () => {
+    const holds: string[] = [];
+    route.moves.forEach((move) => {
+      const colNumber = 10 - (move.description.charCodeAt(0) - 65);
+      const holdNumber =
+        colNumber * 18 +
+        (isEven(colNumber) ? 0 : 18) -
+        (Number.parseInt(move.description.substring(1)));
+      console.info(holdNumber);
+      if (move.isStart) {
+        holds.push(`S${holdNumber}`);
+      } else if (move.isEnd) {
+        holds.push(`E${holdNumber}`);
+      } else {
+        holds.push(`P${holdNumber}`);
+      }
+    });
+    await send(`l#${holds.join(",")}#`);
+  };
 
   const renderRouteItem = ({ item }: ListRenderItemInfo<MBRoute>) => {
     return (
