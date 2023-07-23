@@ -24,7 +24,8 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
-import { MBRoute, get2016Routes } from "./routes";
+import { MBRoute, Move, get2016Routes } from "./routes";
+import { convertMovesToString, stringToByteArray } from "./helpers";
 
 // TODO: Needs to go into its own context
 const BleManagerModule = NativeModules.BleManager;
@@ -162,14 +163,6 @@ export default function MainScreen(): JSX.Element {
     });
   }
 
-  function stringToByteArray(str: string): number[] {
-    let byteArray = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) {
-      byteArray[i] = str.charCodeAt(i) & 0xff;
-    }
-    return Array.from(byteArray);
-  }
-
   async function connect(id: string) {
     console.info(`connecting to ${id}...`);
     await BleManager.connect(id);
@@ -229,28 +222,8 @@ export default function MainScreen(): JSX.Element {
     );
   }
 
-  function isEven(n: number) {
-    return n % 2 == 0;
-  }
-
   const handleRoutePress = (route: MBRoute) => async () => {
-    const holds: string[] = [];
-    route.moves.forEach((move) => {
-      const colNumber = 10 - (move.description.charCodeAt(0) - 65);
-      const holdNumber =
-        colNumber * 18 +
-        (isEven(colNumber) ? 0 : 18) -
-        (Number.parseInt(move.description.substring(1)));
-      console.info(holdNumber);
-      if (move.isStart) {
-        holds.push(`S${holdNumber}`);
-      } else if (move.isEnd) {
-        holds.push(`E${holdNumber}`);
-      } else {
-        holds.push(`P${holdNumber}`);
-      }
-    });
-    await send(`l#${holds.join(",")}#`);
+    await send(convertMovesToString(route.moves));
   };
 
   const renderRouteItem = ({ item }: ListRenderItemInfo<MBRoute>) => {
