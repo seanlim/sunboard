@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <BLESerial.h>
+#include <BLEDevice.h>
 
 #include "LedGrid.h"
 #include "buttonGrid.h"
@@ -17,14 +18,61 @@ Encoder encoder;
 // TaskHandle_t ButtonTask;
 
 BLESerial bleReceive;
-BLESerial bleSend;
 
 const int MAX_ROUTES = 10;
 char bleReceiveName[] = "Sunboard Receiver";
 char bleSendName[] = "Sunboard Sender";
+char moonboardName[] = "Moonboard";
 String routes[MAX_ROUTES];
 int numRoutes = 0;
-int routeIndex = 0;
+
+static BLEUUID serviceUUID("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
+static BLEUUID characteristicUUID("6E400002-B5A3-F393-E0A9-E50E24DCCA9E");
+static boolean doConnect = false;
+static boolean connected = false;
+
+static BLEAddress *pServerAddress;
+static BLERemoteCharacteristic *txCharacteristic;
+
+bool connectToServer(BLEAddress pAddress)
+{
+  BLEClient *pClient = BLEDevice::createClient();
+  pClient->connect(pAddress);
+  Serial.println(" - Connected to server");
+
+  BLERemoteService *pRemoteService = pClient->getService(serviceUUID);
+
+  if (pRemoteService == nullptr)
+  {
+    Serial.print("Failed to find our service UUID: ");
+    Serial.println(serviceUUID.toString().c_str());
+    return false;
+  }
+
+  txCharacteristic = pRemoteService->getCharacteristic(characteristicUUID);
+  if (txCharacteristic == nullptr)
+  {
+    Serial.print("Failed to find our characteristic UUID");
+    Serial.println(characteristicUUID.toString().c_str());
+    return false;
+  }
+  Serial.println(" - Found our characteristics");
+  return true;
+}
+
+class MyAdvertiseDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
+{
+  void onResult(BLEAdvertisedDevice advertisedDevice)
+  {
+    if (advertisedDevice.getName() == moonboardName)
+    {
+      advertisedDevice.getScan()->stop();
+      pServerAddress = new BLEAddress(advertisedDevice.getAddress());
+      doConnect = true;
+      Serial.println("Device Found. Connecting!");
+    }
+  }
+};
 
 void setup()
 {
@@ -39,6 +87,12 @@ void setup()
   screen.setup();
 
   bleReceive.begin(bleReceiveName);
+
+  BLEDevice::init(bleSendName);
+  BLEScan *pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertiseDeviceCallbacks());
+  pBLEScan->setActiveScan(true);
+  pBLEScan->start(30);
 
   Serial.println("Setup Done");
 
@@ -63,7 +117,7 @@ void handleEncoderRotate(long val)
   parseLine(routes[val % MAX_ROUTES]);
 }
 
-bool connected = false;
+bool RecConnected = false;
 
 String receivedData = "";
 
@@ -72,10 +126,10 @@ void loop()
   encoder.onChange(&handleEncoderRotate);
   if (bleReceive.connected())
   {
-    if (!connected)
+    if (!RecConnected)
     {
       Serial.println("connected!");
-      connected = true;
+      RecConnected = true;
     }
     if (bleReceive.available())
     {
@@ -99,12 +153,27 @@ void loop()
   }
   else
   {
-    if (connected)
+    if (RecConnected)
     {
       Serial.println("Disconnected");
-      connected = false;
+      RecConnected = false;
     }
   }
+
+  if (doConnect == true)
+  {
+    if (connectToServer(*pServerAddress))
+    {
+      Serial.println("We are now connected to the BLE Server.");
+      connected = true;
+    }
+    else
+    {
+      Serial.println("We have failed to connect to the server; Restart your device to scan for nearby BLE server again.");
+    }
+    doConnect = false;
+  }
+
   leds.render();
 }
 
@@ -147,7 +216,15 @@ void parseLine(String data)
     }
   }
   route = data.substring(routeStart);
+
+  if (txCharacteristic != nullptr)
+  {
+    Serial.printf("Can it write?: %i", txCharacteristic->canWrite() ? 1 : 0);
+    txCharacteristic->writeValue(route.substring(0, route.length()).c_str());
+  }
   route = route.substring(3, route.length() - 2);
+  title.concat('\n');
+  title.concat(grade);
   screen.setText(title.c_str());
 
   parseRoute(route);

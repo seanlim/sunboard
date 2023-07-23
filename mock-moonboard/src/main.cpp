@@ -11,7 +11,7 @@ bool connected;
 void setup()
 {
   Serial.begin(115200);
-  char bleName[] = "Sunboard";
+  char bleName[] = "Moonboard";
   bleSerial.begin(bleName);
   Serial.println("-----------------");
   Serial.println("Waiting for the mobile app to connect ...");
