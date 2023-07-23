@@ -1,6 +1,6 @@
 const mb2016Routes = require("./problems MoonBoard 2016 .json");
 
-type Move = {
+export type Move = {
   description: string;
   isStart: boolean;
   isEnd: boolean;
