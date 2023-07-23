@@ -1,9 +1,7 @@
 #include "main.h"
 
 #include <Arduino.h>
-#include <NeoPixelBus.h>
 #include <BLESerial.h>
-#include <Adafruit_SSD1306.h>
 
 #include "LedGrid.h"
 #include "buttonGrid.h"
@@ -14,13 +12,19 @@
 ButtonGrid buttons;
 LedGrid leds;
 Screen screen;
-
 Encoder encoder;
 
 // TaskHandle_t ButtonTask;
 
 BLESerial bleReceive;
 BLESerial bleSend;
+
+const int MAX_ROUTES = 10;
+char bleReceiveName[] = "Sunboard Receiver";
+char bleSendName[] = "Sunboard Sender";
+String routes[MAX_ROUTES];
+int numRoutes = 0;
+int routeIndex = 0;
 
 void setup()
 {
@@ -34,10 +38,7 @@ void setup()
   encoder.setup();
   screen.setup();
 
-  char bleReceiveName[] = "Sunboard Receiver";
-  char bleSendName[] = "Sunboard Sender";
   bleReceive.begin(bleReceiveName);
-  bleSend.begin(bleSendName);
 
   Serial.println("Setup Done");
 
@@ -57,59 +58,122 @@ void ButtonTaskCode(void *pvParams)
 
 void handleEncoderRotate(long val)
 {
-  char buffer[40];
-  Serial.printf("Encoder: %d\n", val);
-  sprintf(buffer, "Encoder: %d", val);
-  screen.setText(buffer);
+  // char buffer[40];
+  // sprintf(buffer, "Encoder: %d", val);
+  parseLine(routes[val % MAX_ROUTES]);
 }
+
+bool connected = false;
+
+String receivedData = "";
 
 void loop()
 {
-
   encoder.onChange(&handleEncoderRotate);
   if (bleReceive.connected())
   {
+    if (!connected)
+    {
+      Serial.println("connected!");
+      connected = true;
+    }
     if (bleReceive.available())
     {
-      String result;
       char data;
       while (bleReceive.available())
       {
-        leds.clear();
         data = bleReceive.read();
-        result.concat(data);
+        receivedData.concat(data);
+        if (receivedData[receivedData.length() - 1] == '|')
+        {
+          if (numRoutes < MAX_ROUTES)
+          {
+            routes[numRoutes] = receivedData;
+            numRoutes++;
+          }
+          parseLine(receivedData);
+          receivedData = "";
+        }
       }
-      parseRoute(result);
+    }
+  }
+  else
+  {
+    if (connected)
+    {
+      Serial.println("Disconnected");
+      connected = false;
     }
   }
   leds.render();
 }
 
-// String asdf = "l#S175,P85,P152,E126#";
+void printString(String s)
+{
+  for (char c : s)
+  {
+    Serial.printf("%c", c);
+  }
+  Serial.println();
+}
+
+void parseLine(String data)
+{
+  if (data.length() == 0)
+    return;
+  TRACEF("Received of len %d:\n", data.length());
+  String title;
+  String grade;
+  String route;
+  int seperatorCount = 0;
+  int gradeStart = 0;
+  int routeStart = 0;
+  for (int i = 0; i < data.length(); i++)
+  {
+    if (data[i] == '%')
+    {
+      seperatorCount++;
+      if (seperatorCount == 1)
+      {
+        title = data.substring(0, i);
+        gradeStart = i;
+      }
+      if (seperatorCount == 2)
+      {
+        grade = data.substring(gradeStart + 1, i);
+        routeStart = i;
+        break;
+      }
+    }
+  }
+  route = data.substring(routeStart);
+  route = route.substring(3, route.length() - 2);
+  screen.setText(title.c_str());
+
+  parseRoute(route);
+}
 
 void parseRoute(String data)
 {
-  Serial.printf("data: %s\n", data);
-  // remove starting and ending characters
-  data = data.substring(2);
-  data.remove(data.length() - 1);
+  leds.clear();
   String subStr;
   for (int i = 0; i < data.length(); i++)
   {
     if (data[i] == ',')
     {
       // process substring
-      processSubStr(subStr);
+      processRouteSegment(subStr);
       subStr = "";
       continue;
     }
     // build string until comma
     subStr.concat(data[i]);
   }
-  processSubStr(subStr);
+  processRouteSegment(subStr);
+  leds.render();
 }
 
-void processSubStr(String subStr)
+void processRouteSegment(String subStr)
 {
   RgbColor color;
   if (subStr[0] == 'S')
@@ -127,6 +191,6 @@ void processSubStr(String subStr)
     row = 17 - row;
   }
   row = row - 4;
-  Serial.printf("%s: %d %d %d\n", subStr, pos, row, column);
+  TRACEF("%s: %d %d %d\n", subStr, pos, row, column);
   leds.setPixel(row, column, color);
 }

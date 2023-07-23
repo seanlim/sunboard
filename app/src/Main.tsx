@@ -223,7 +223,12 @@ export default function MainScreen(): JSX.Element {
   }
 
   const handleRoutePress = (route: MBRoute) => async () => {
-    await send(`${route.name}%${route.grade}%${convertMovesToString(route.moves)}`);
+    console.log(
+      `${route.name}%${route.grade}%${convertMovesToString(route.moves)}|`
+    );
+    await send(
+      `${route.name}%${route.grade}%${convertMovesToString(route.moves)}|`
+    );
   };
 
   const renderRouteItem = ({ item }: ListRenderItemInfo<MBRoute>) => {

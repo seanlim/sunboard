@@ -22,10 +22,15 @@ void Screen::setup()
 
 void Screen::setText(const char *fmt)
 {
+    setText(fmt, 0, 0);
+}
+
+void Screen::setText(const char *fmt, int x, int y)
+{
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
+    display.setCursor(x, y);
     display.print(fmt);
     display.display();
 }

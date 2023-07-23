@@ -11,7 +11,7 @@ void Encoder::onChange(void (*cb)(long))
     long current = encoder.getCount() / 4;
     if (current != previousPosition)
     {
-        cb(current);
+        cb(abs(current));
         previousPosition = current;
     }
 }

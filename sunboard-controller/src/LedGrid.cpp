@@ -10,7 +10,6 @@ void LedGrid::clear()
 {
     for (int i = 0; i < PIXEL_COUNT; i++)
         state[i] = black;
-    Serial.println("LEDs Initialized");
 }
 
 void LedGrid::setPixel(int row, int col, RgbColor c)

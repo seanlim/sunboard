@@ -20,6 +20,7 @@ private:
 public:
     void setup();
     void setText(const char *fmt);
+    void setText(const char *fmt, int x, int y);
 };
 
 #endif
